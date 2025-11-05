@@ -11,6 +11,11 @@ find_package(builtin_interfaces REQUIRED)
 
 set(msg_files
   "msg/Control.msg"
+  "msg/Box.msg"
+  "msg/Point.msg"
+  "msg/PointArray.msg"
+  "msg/Line.msg"
+  "msg/BoxArray.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

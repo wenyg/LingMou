@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     python3-colcon-common-extensions \
     ros-jazzy-rosidl-default-generators \
+    ros-jazzy-rosbag2 \
+    ros-jazzy-rosbag2-storage-mcap \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Fast DDS as default RMW implementation
