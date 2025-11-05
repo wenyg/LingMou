@@ -4,9 +4,10 @@
 
 ## 架构
 
-- **control_module**: ROS2 节点，10Hz 周期性发布 `/control_cmd` 话题（Control 消息）
+- **control_module**: ROS2 节点，10Hz 周期性发布 `/control_cmd` 话题（Control 消息）和自定义可视化消息
+- **marker_converter**: ROS2 节点，将自定义消息转换为 `visualization_msgs/Marker`，供 Foxglove 自动可视化
 - **ui_proxy**: ROS2 节点，订阅 `/control_cmd`，同时作为 TCP Server（端口 9000）转发 JSON Lines 格式消息
-- **live_server**: 独立 TCP 客户端程序，连接到 ui_proxy，接收并打印 Control 消息
+- **foxglove_bridge**: ROS2 节点，提供 WebSocket 服务器（端口 8765），连接 Foxglove Studio 与 ROS2 系统
 
 ## 构建
 
@@ -34,16 +35,27 @@ source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 run control_module marker_converter
 ```
 
-**终端 3 - UI Proxy（TCP Server，可选）：**
+**终端 3 - Foxglove Bridge（WebSocket Server，用于 Foxglove 连接）：**
+```bash
+source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
+ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+```
+
+**终端 4 - UI Proxy（TCP Server，可选）：**
 ```bash
 source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 run ui_proxy ui_proxy_node
 ```
 
-**终端 4 - Live Server（TCP Client，可选）：**
-```bash
-live_server localhost 9000
-```
+### 连接 Foxglove Studio（WebSocket）
+
+1. 确保已启动 `foxglove_bridge`（终端 3）
+2. 打开 [Foxglove Studio](https://studio.foxglove.dev/)
+3. 选择 "Open connection" → "Foxglove WebSocket"
+4. 输入连接地址：`ws://localhost:8765`
+5. 点击 "Open" 即可实时查看 ROS2 话题数据
+
+**注意**：如果容器内运行，需要确保端口映射正确，或使用 `--net=host` 模式。
 
 ## 录制数据（Foxglove 回放）
 
@@ -111,13 +123,24 @@ ros2 bag play ./bags/complete_data --topics /visualization/marker /visualization
 
 ### 在 Foxglove 中使用
 
+#### 方式 1: WebSocket 实时连接（推荐）
+
+1. 启动 `foxglove_bridge`（见上方运行说明）
+2. 打开 [Foxglove Studio](https://studio.foxglove.dev/)
+3. 选择 "Open connection" → "Foxglove WebSocket"
+4. 输入 `ws://localhost:8765`
+5. 实时查看和可视化 ROS2 话题数据
+
+#### 方式 2: 回放录制的 bag 文件
+
 1. 打开 [Foxglove Studio](https://studio.foxglove.dev/)
-2. 选择 "Open file" 或 "Open connection"
+2. 选择 "Open file"
 3. 选择录制的 bag 文件（MCAP 或 SQLite3 格式都支持）
 4. 在 Foxglove 中：
    - 订阅 `/visualization/marker` 和 `/visualization/marker_array` 进行 3D 可视化
    - 订阅原始自定义消息（`/visualization/box` 等）查看原始数据
    - 使用 "Raw Messages" 面板查看自定义消息的详细字段
+   - 使用 "3D" 面板查看 Marker 的 3D 渲染
 
 ## 技术栈
 
@@ -125,3 +148,4 @@ ros2 bag play ./bags/complete_data --topics /visualization/marker /visualization
 - Fast DDS (RMW_IMPLEMENTATION=rmw_fastrtps_cpp)
 - Docker (ros:jazzy-ros-base)
 - rosbag2 (数据录制)
+- foxglove_bridge (WebSocket 连接 Foxglove Studio)
