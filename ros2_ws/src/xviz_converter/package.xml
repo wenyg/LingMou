@@ -12,6 +12,8 @@
   <depend>rclcpp</depend>
   <depend>demo_interfaces</depend>
   <depend>libboost-dev</depend>
+  <depend>libprotobuf-dev</depend>
+  <depend>protobuf-compiler</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

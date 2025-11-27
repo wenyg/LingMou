@@ -7,7 +7,7 @@
 - **control_module**: ROS2 节点，10Hz 周期性发布 `/control_cmd` 话题（Control 消息）和自定义可视化消息
 - **marker_converter**: ROS2 节点，将自定义消息转换为 `visualization_msgs/Marker`，供 Foxglove 自动可视化
 - **ui_proxy**: ROS2 节点，订阅 `/control_cmd`，同时作为 TCP Server（端口 9000）转发 JSON Lines 格式消息
-- **xviz_converter**: ROS2 节点，基于 Boost Beast 的 WebSocket Server（端口 8080），订阅 `/control_cmd` 并转发 JSON 格式消息
+- **xviz_converter**: ROS2 节点，基于 Boost Beast 的 WebSocket Server（端口 8081），按 XVIZ 协议转发控制数据和可视化数据
 - **foxglove_bridge**: ROS2 节点，提供 WebSocket 服务器（端口 8765），连接 Foxglove Studio 与 ROS2 系统
 
 ## 构建
@@ -55,26 +55,71 @@ ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 ros2 run ui_proxy ui_proxy_node
 ```
 
-**终端 5 - XVIZ Converter（WebSocket Server，可选）：**
+**终端 5 - XVIZ Converter（WebSocket Server，推荐）：**
 ```bash
 ros2 run xviz_converter xviz_converter_node
 ```
 
 > 注意：打开新终端需要再次运行 `./dev.sh` 进入容器
 
-### 连接 XVIZ Converter（WebSocket）
-
-XVIZ Converter 监听端口 8080，客户端连接后会实时接收 JSON 格式的 control 消息：
+### 完整运行示例（使用 XVIZ）
 
 ```bash
-# 使用 websocat 测试连接
-websocat ws://localhost:8080
+# 终端 1 - 启动 control_publisher（发布控制和可视化消息）
+ros2 run control_module control_publisher
+
+# 终端 2 - 启动 XVIZ converter（转换为 XVIZ 协议）
+ros2 run xviz_converter xviz_converter_node
+
+# 终端 3 - 测试 XVIZ 连接
+./test_xviz_client.py
 ```
 
-JSON 消息格式：
-```json
-{"timestamp":{"sec":123,"nanosec":456},"speed_mps":5.0,"steering_deg":15.0,"gear":1}
+此配置下，所有数据（控制 + 可视化）都会通过 XVIZ 协议在一个 WebSocket 连接（端口 8081）上传输。
+
+### 连接 XVIZ Converter（WebSocket）
+
+XVIZ Converter 监听端口 8081，客户端连接后会按照 XVIZ 协议接收数据：
+
+**订阅的 ROS2 话题：**
+- `/control_cmd` - 控制消息（转为 TIME_SERIES）
+- `/visualization/box` - 单个 Box（转为 POLYGON primitive）
+- `/visualization/box_array` - Box 数组（转为 POLYGON primitives）
+- `/visualization/point_array` - 点云（转为 POINT primitives）
+- `/visualization/line` - 线段（转为 POLYLINE primitive）
+
+**协议流程：**
+1. 客户端连接 `ws://localhost:8081`
+2. 服务器立即发送 `xviz/metadata` 消息（描述可用数据流）
+3. 服务器持续发送 `xviz/state_update` 消息（实时控制数据 + 可视化数据）
+
+**测试连接：**
+```bash
+# 方法 1: 使用测试脚本（推荐）
+pip install websocket-client
+./test_xviz_client.py
+
+# 方法 2: 使用 websocat
+websocat ws://localhost:8081
+
+# 方法 3: 使用 Python 一行命令
+python3 -c "
+import websocket
+ws = websocket.create_connection('ws://localhost:8081')
+while True:
+    print(ws.recv())
+"
 ```
+
+**XVIZ 数据流：**
+- `/vehicle_pose` - 车辆位姿（POSE）
+- `/vehicle/control/speed` - 速度（TIME_SERIES，单位: m/s）
+- `/vehicle/control/steering` - 转向角（TIME_SERIES，单位: degrees）
+- `/vehicle/control/gear` - 档位（TIME_SERIES）
+- `/visualization/box` - 3D 边界框（POLYGON，蓝色）
+- `/visualization/box_array` - 3D 边界框数组（POLYGON，青色）
+- `/visualization/points` - 点云（POINT，红色）
+- `/visualization/line` - 线段（POLYLINE，绿色）
 
 ### 连接 Foxglove Studio（WebSocket）
 
