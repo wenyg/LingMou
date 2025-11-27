@@ -18,23 +18,12 @@ ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 SHELL ["/bin/bash", "-c"]
 
-WORKDIR /ws
+WORKDIR /workspace
 
-# Copy source
-COPY ros2_ws/src /ws/src
-
-# Setup and build ROS2 packages
-RUN source /opt/ros/jazzy/setup.bash && \
-    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
-
-# Source on container start
+# Source ROS2 on container start
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
-    echo "source /ws/install/setup.bash" >> /root/.bashrc && \
+    echo "if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi" >> /root/.bashrc && \
     echo "export PATH=/usr/local/bin:\$PATH" >> /root/.bashrc
 
-# Expose ports
-# EXPOSE 9000  # ui_proxy TCP server
-# EXPOSE 8765  # foxglove_bridge WebSocket server
-
-CMD ["bash", "-lc", "source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash && bash"]
+CMD ["/bin/bash"]
 

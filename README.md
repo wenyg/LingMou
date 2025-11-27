@@ -17,35 +17,44 @@ docker build -t lingmou-jazzy:dev .
 
 ## 运行
 
+使用开发脚本进入容器（自动挂载代码目录）：
+
 ```bash
-docker run --rm -it --net=host lingmou-jazzy:dev
+./dev.sh
 ```
 
-在容器内的终端中分别运行：
+首次进入容器后，需要编译项目：
+
+```bash
+cd /workspace/ros2_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+```
+
+后续在容器内的终端中分别运行：
 
 **终端 1 - 发布者（自定义消息）：**
 ```bash
-source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 run control_module control_publisher
 ```
 
 **终端 2 - Marker 转换器（可选，用于 Foxglove 可视化）：**
 ```bash
-source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 run control_module marker_converter
 ```
 
 **终端 3 - Foxglove Bridge（WebSocket Server，用于 Foxglove 连接）：**
 ```bash
-source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 ```
 
 **终端 4 - UI Proxy（TCP Server，可选）：**
 ```bash
-source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 ros2 run ui_proxy ui_proxy_node
 ```
+
+> 注意：打开新终端需要再次运行 `./dev.sh` 进入容器
 
 ### 连接 Foxglove Studio（WebSocket）
 
@@ -54,8 +63,6 @@ ros2 run ui_proxy ui_proxy_node
 3. 选择 "Open connection" → "Foxglove WebSocket"
 4. 输入连接地址：`ws://localhost:8765`
 5. 点击 "Open" 即可实时查看 ROS2 话题数据
-
-**注意**：如果容器内运行，需要确保端口映射正确，或使用 `--net=host` 模式。
 
 ## 录制数据（Foxglove 回放）
 
@@ -66,7 +73,6 @@ ros2 run ui_proxy ui_proxy_node
 ```bash
 # 在容器内，确保已启动 control_publisher 和 marker_converter
 # 然后在另一个终端录制：
-source /opt/ros/jazzy/setup.bash && source /ws/install/setup.bash
 
 # 录制所有原始自定义消息 + 转换后的 Marker 消息
 ros2 bag record \
