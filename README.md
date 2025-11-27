@@ -7,6 +7,7 @@
 - **control_module**: ROS2 节点，10Hz 周期性发布 `/control_cmd` 话题（Control 消息）和自定义可视化消息
 - **marker_converter**: ROS2 节点，将自定义消息转换为 `visualization_msgs/Marker`，供 Foxglove 自动可视化
 - **ui_proxy**: ROS2 节点，订阅 `/control_cmd`，同时作为 TCP Server（端口 9000）转发 JSON Lines 格式消息
+- **xviz_converter**: ROS2 节点，基于 Boost Beast 的 WebSocket Server（端口 8080），订阅 `/control_cmd` 并转发 JSON 格式消息
 - **foxglove_bridge**: ROS2 节点，提供 WebSocket 服务器（端口 8765），连接 Foxglove Studio 与 ROS2 系统
 
 ## 构建
@@ -54,7 +55,26 @@ ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 ros2 run ui_proxy ui_proxy_node
 ```
 
+**终端 5 - XVIZ Converter（WebSocket Server，可选）：**
+```bash
+ros2 run xviz_converter xviz_converter_node
+```
+
 > 注意：打开新终端需要再次运行 `./dev.sh` 进入容器
+
+### 连接 XVIZ Converter（WebSocket）
+
+XVIZ Converter 监听端口 8080，客户端连接后会实时接收 JSON 格式的 control 消息：
+
+```bash
+# 使用 websocat 测试连接
+websocat ws://localhost:8080
+```
+
+JSON 消息格式：
+```json
+{"timestamp":{"sec":123,"nanosec":456},"speed_mps":5.0,"steering_deg":15.0,"gear":1}
+```
 
 ### 连接 Foxglove Studio（WebSocket）
 
@@ -154,4 +174,5 @@ ros2 bag play ./bags/complete_data --topics /visualization/marker /visualization
 - Fast DDS (RMW_IMPLEMENTATION=rmw_fastrtps_cpp)
 - Docker (ros:jazzy-ros-base)
 - rosbag2 (数据录制)
+- Boost Beast (WebSocket 服务器)
 - foxglove_bridge (WebSocket 连接 Foxglove Studio)

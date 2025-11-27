@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-rosbag2 \
     ros-jazzy-rosbag2-storage-mcap \
     ros-jazzy-foxglove-bridge \
+    libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Fast DDS as default RMW implementation
